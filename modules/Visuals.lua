@@ -4,7 +4,7 @@ function VisualsModule:Init(Window)
     if not Window then return end
 
     local Tab = Window:CreateTab("Visuals")
-    -- В твоей либе аргументы: (Name, Side)
+    -- В этой либе методы секторов: AddToggle, AddButton, AddDropdown, AddColorPicker
     local ChamsSector = Tab:CreateSector("Elite Chams", "Left")
     local WorldSector = Tab:CreateSector("Environment", "Right")
     
@@ -16,36 +16,45 @@ function VisualsModule:Init(Window)
         Rainbow = false
     }
 
-    -- 1. ТУМБЛЕР (Метод: Toggle)
-    -- Аргументы: Name, Default, Callback
-    ChamsSector:Toggle("Enable Material Chams", false, function(state)
+    -- 1. ТУМБЛЕР (AddToggle)
+    ChamsSector:AddToggle("Enable Material Chams", false, function(state)
         Settings.Enabled = state
         if not state then VisualsModule:ResetChams() end
     end)
 
-    -- 2. ВЫПАДАЮЩИЙ СПИСОК (Метод: Dropdown)
-    -- Аргументы: Name, Options, Default, Callback
-    ChamsSector:Dropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice"}, "ForceField", function(selected)
+    -- 2. ВЫПАДАЮЩИЙ СПИСОК (AddDropdown)
+    -- Аргументы: Name, List, Default, Callback
+    ChamsSector:AddDropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice"}, "ForceField", function(selected)
         if Enum.Material[selected] then
             Settings.Material = Enum.Material[selected]
         end
     end)
 
-    -- 3. ЦВЕТ (Метод: Colorpicker)
-    -- Аргументы: Name, Default, Callback
-    ChamsSector:Colorpicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
-        Settings.Color = newColor
-        Settings.Rainbow = false
+    -- 3. ЦВЕТ (AddColorPicker)
+    -- В этой либе может быть AddColorPicker или AddColorpicker
+    local cpSuccess = pcall(function()
+        ChamsSector:AddColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+            Settings.Color = newColor
+            Settings.Rainbow = false
+        end)
     end)
+    
+    if not cpSuccess then
+        pcall(function()
+            ChamsSector:AddColorpicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+                Settings.Color = newColor
+                Settings.Rainbow = false
+            end)
+        end)
+    end
 
-    -- 4. РАДУГА
-    ChamsSector:Toggle("Rainbow Mode", false, function(state)
+    -- 4. РАДУГА (AddToggle)
+    ChamsSector:AddToggle("Rainbow Mode", false, function(state)
         Settings.Rainbow = state
     end)
 
-    -- 5. ОКРУЖЕНИЕ (Метод: Button)
-    -- Аргументы: Name, Callback
-    WorldSector:Button("Full Bright", function()
+    -- 5. ОКРУЖЕНИЕ (AddButton)
+    WorldSector:AddButton("Full Bright", function()
         local Light = game:GetService("Lighting")
         Light.Brightness = 2
         Light.ClockTime = 14
