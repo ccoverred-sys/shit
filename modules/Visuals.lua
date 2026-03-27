@@ -3,8 +3,10 @@ local VisualsModule = {}
 function VisualsModule:Init(Window)
     if not Window then return end
 
+    -- Создаем вкладку
     local Tab = Window:CreateTab("Visuals")
-    -- В этой либе методы секторов: AddToggle, AddButton, AddDropdown, AddColorPicker
+    
+    -- Создаем секторы (Side: Left или Right)
     local ChamsSector = Tab:CreateSector("Elite Chams", "Left")
     local WorldSector = Tab:CreateSector("Environment", "Right")
     
@@ -17,43 +19,35 @@ function VisualsModule:Init(Window)
     }
 
     -- 1. ТУМБЛЕР (AddToggle)
+    -- Аргументы: Название, Дефолт (bool), Коллбэк
     ChamsSector:AddToggle("Enable Material Chams", false, function(state)
         Settings.Enabled = state
         if not state then VisualsModule:ResetChams() end
     end)
 
     -- 2. ВЫПАДАЮЩИЙ СПИСОК (AddDropdown)
-    -- Аргументы: Name, List, Default, Callback
-    ChamsSector:AddDropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice"}, "ForceField", function(selected)
+    -- Аргументы: Название, Таблица, Дефолтное_значение, Коллбэк
+    local materials = {"ForceField", "Neon", "Glass", "Ice"}
+    ChamsSector:AddDropdown("Select Material", materials, "ForceField", function(selected)
         if Enum.Material[selected] then
             Settings.Material = Enum.Material[selected]
         end
     end)
 
-    -- 3. ЦВЕТ (AddColorPicker)
-    -- В этой либе может быть AddColorPicker или AddColorpicker
-    local cpSuccess = pcall(function()
-        ChamsSector:AddColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
-            Settings.Color = newColor
-            Settings.Rainbow = false
-        end)
+    -- 3. ВЫБОР ЦВЕТА (AddColorpicker - в IsraelLib обычно маленькая 'p')
+    -- Аргументы: Название, Дефолт (Color3), Коллбэк
+    ChamsSector:AddColorpicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+        Settings.Color = newColor
+        Settings.Rainbow = false
     end)
-    
-    if not cpSuccess then
-        pcall(function()
-            ChamsSector:AddColorpicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
-                Settings.Color = newColor
-                Settings.Rainbow = false
-            end)
-        end)
-    end
 
-    -- 4. РАДУГА (AddToggle)
+    -- 4. РАДУГА
     ChamsSector:AddToggle("Rainbow Mode", false, function(state)
         Settings.Rainbow = state
     end)
 
     -- 5. ОКРУЖЕНИЕ (AddButton)
+    -- Аргументы: Название, Коллбэк
     WorldSector:AddButton("Full Bright", function()
         local Light = game:GetService("Lighting")
         Light.Brightness = 2
@@ -61,7 +55,7 @@ function VisualsModule:Init(Window)
         Light.GlobalShadows = false
     end)
 
-    -- [ЛОГИКА ОЧИСТКИ]
+    -- [ЛОГИКА СБРОСА]
     function VisualsModule:ResetChams()
         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
             if player.Character then
@@ -85,11 +79,14 @@ function VisualsModule:Init(Window)
             if player ~= game:GetService("Players").LocalPlayer and player.Character then
                 for _, part in ipairs(player.Character:GetDescendants()) do
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                        if not part:GetAttribute("OrigColor") then part:SetAttribute("OrigColor", part.Color) end
+                        if not part:GetAttribute("OrigColor") then 
+                            part:SetAttribute("OrigColor", part.Color) 
+                        end
                         
                         part.Material = Settings.Material
                         part.Color = Settings.Color
                         
+                        -- Фикс прозрачности для X-Ray
                         if Settings.Material == Enum.Material.ForceField then
                             part.Transparency = -1 
                         elseif Settings.Material == Enum.Material.Glass then
