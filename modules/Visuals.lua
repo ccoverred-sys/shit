@@ -7,20 +7,31 @@ function VisualsModule:Init(Window)
     
     local Settings = {
         Enabled = false,
-        Material = Enum.Material.ForceField, -- ForceField дает X-Ray эффект
+        Material = Enum.Material.ForceField,
         Color = Color3.fromRGB(255, 0, 0),
         Transparency = 0.5
     }
 
-    -- 1. ВКЛЮЧЕНИЕ ЧАМСОВ
-    ChamsSector:AddToggle("Enable Material Chams", false, function(state)
+    -- 1. ПЕРЕКЛЮЧАТЕЛЬ ЧАМСОВ
+    ChamsSector:AddToggle("Material Chams", false, function(state)
         Settings.Enabled = state
         if not state then
-            VisualsModule:ResetAll()
+            -- Возврат к норме при выключении
+            for _, p in ipairs(game.Players:GetPlayers()) do
+                if p.Character then
+                    for _, v in ipairs(p.Character:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v.Material = Enum.Material.Plastic
+                            v.Transparency = 0
+                            v.Color = v:GetAttribute("OrigColor") or v.Color
+                        end
+                    end
+                end
+            end
         end
     end)
 
-    -- 2. ВЫБОР МАТЕРИАЛА (Neon или ForceField)
+    -- 2. РЕЖИМЫ ОТОБРАЖЕНИЯ
     ChamsSector:AddButton("Mode: X-Ray (ForceField)", function()
         Settings.Material = Enum.Material.ForceField
     end)
@@ -29,33 +40,19 @@ function VisualsModule:Init(Window)
         Settings.Material = Enum.Material.Neon
     end)
 
-    -- 3. ЦВЕТА
+    -- 3. ПРЕСЕТЫ ЦВЕТОВ
     ChamsSector:AddButton("Color: Red", function() Settings.Color = Color3.fromRGB(255, 0, 0) end)
     ChamsSector:AddButton("Color: Cyan", function() Settings.Color = Color3.fromRGB(0, 255, 255) end)
 
     -- 4. ОКРУЖЕНИЕ
     WorldSector:AddButton("Full Bright", function()
-        game:GetService("Lighting").Brightness = 2
-        game:GetService("Lighting").ClockTime = 14
-        game:GetService("Lighting").GlobalShadows = false
+        local Light = game:GetService("Lighting")
+        Light.Brightness = 2
+        Light.ClockTime = 14
+        Light.GlobalShadows = false
     end)
 
-    -- ФУНКЦИЯ ОЧИСТКИ (Возврат оригинальных материалов)
-    function VisualsModule:ResetAll()
-        for _, player in ipairs(game.Players:GetPlayers()) do
-            if player.Character then
-                for _, part in ipairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Material = Enum.Material.Plastic -- Дефолтный пластик
-                        part.Color = part:GetAttribute("OrigColor") or part.Color
-                        part.Transparency = 0
-                    end
-                end
-            end
-        end
-    end
-
-    -- СИСТЕМНЫЙ ЦИКЛ (RenderStepped для плавности)
+    -- СИСТЕМНЫЙ ЦИКЛ РЕНДЕРИНГА (Fast Update)
     game:GetService("RunService").RenderStepped:Connect(function()
         if not Settings.Enabled then return end
         
@@ -63,18 +60,20 @@ function VisualsModule:Init(Window)
             if player ~= game.Players.LocalPlayer and player.Character then
                 for _, part in ipairs(player.Character:GetDescendants()) do
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                        -- Сохраняем оригинал один раз
+                        -- Сохраняем оригинальный цвет
                         if not part:GetAttribute("OrigColor") then
                             part:SetAttribute("OrigColor", part.Color)
                         end
                         
-                        -- Применяем Элитные Чамсы
+                        -- Применяем эффекты
                         part.Material = Settings.Material
                         part.Color = Settings.Color
-                        part.Transparency = Settings.Transparency
-                        -- ForceField на отрицательной прозрачности дает "свечение"
+                        
+                        -- Спецэффект для X-Ray
                         if Settings.Material == Enum.Material.ForceField then
                             part.Transparency = -1 
+                        else
+                            part.Transparency = Settings.Transparency
                         end
                     end
                 end
