@@ -1,6 +1,7 @@
 local VisualsModule = {}
 
 function VisualsModule:Init(Window)
+    -- Создаем вкладку и сектор (как в Movement)
     local Tab = Window:CreateTab("Visuals")
     local Sector = Tab:CreateSector("Elite Chams", "Left")
     
@@ -10,10 +11,11 @@ function VisualsModule:Init(Window)
         Color = Color3.fromRGB(255, 0, 0)
     }
 
-    -- 1. ВКЛЮЧЕНИЕ
+    -- 1. ТУМБЛЕР (Проверенный метод из Movement)
     Sector:AddToggle("Enable Chams", false, function(state)
         Settings.Enabled = state
         if not state then
+            -- Сброс материалов при выключении
             pcall(function()
                 for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
                     if p.Character then
@@ -29,30 +31,26 @@ function VisualsModule:Init(Window)
         end
     end)
 
-    -- 2. ДРОПДАУН (Строгий синтаксис: Name, List, Default, Callback)
-    local materials = {"ForceField", "Neon", "Glass", "Ice", "Wood"}
-    Sector:AddDropdown("Select Material", materials, "ForceField", function(selected)
-        if Enum.Material[selected] then
-            Settings.Material = Enum.Material[selected]
-        end
+    -- 2. КНОПКИ СМЕНЫ РЕЖИМА (Вместо проблемного дропдауна)
+    Sector:AddButton("Mode: X-Ray", function()
+        Settings.Material = Enum.Material.ForceField
     end)
 
-    -- 3. КОЛОРПИКЕР (Палитра)
-    -- Аргументы: Name, DefaultColor, Callback
-    Sector:AddColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
-        Settings.Color = newColor
+    Sector:AddButton("Mode: Neon Glow", function()
+        Settings.Material = Enum.Material.Neon
     end)
 
-    -- ЛОГИКА РЕНДЕРА
+    -- 3. ЦИКЛ ОБНОВЛЕНИЯ (RenderStepped)
     game:GetService("RunService").RenderStepped:Connect(function()
         if not Settings.Enabled then return end
+        
         for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
             if p ~= game:GetService("Players").LocalPlayer and p.Character then
                 for _, part in ipairs(p.Character:GetDescendants()) do
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                         part.Material = Settings.Material
                         part.Color = Settings.Color
-                        -- Хак прозрачности для ForceField (X-Ray)
+                        -- Просвет сквозь стены для ForceField
                         if Settings.Material == Enum.Material.ForceField then
                             part.Transparency = -1
                         else
