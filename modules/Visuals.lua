@@ -10,11 +10,10 @@ function VisualsModule:Init(Window)
         Color = Color3.fromRGB(255, 0, 0)
     }
 
-    -- Используем AddToggle, как в твоем Movement.lua
+    -- 1. ВКЛЮЧЕНИЕ
     Sector:AddToggle("Enable Chams", false, function(state)
         Settings.Enabled = state
         if not state then
-            -- Сброс (pcall для безопасности)
             pcall(function()
                 for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
                     if p.Character then
@@ -30,16 +29,21 @@ function VisualsModule:Init(Window)
         end
     end)
 
-    -- Вместо дропдауна пока кнопки (чтобы проверить отрисовку)
-    Sector:AddButton("Mode: ForceField", function()
-        Settings.Material = Enum.Material.ForceField
+    -- 2. ДРОПДАУН (Строгий синтаксис: Name, List, Default, Callback)
+    local materials = {"ForceField", "Neon", "Glass", "Ice", "Wood"}
+    Sector:AddDropdown("Select Material", materials, "ForceField", function(selected)
+        if Enum.Material[selected] then
+            Settings.Material = Enum.Material[selected]
+        end
     end)
 
-    Sector:AddButton("Mode: Neon", function()
-        Settings.Material = Enum.Material.Neon
+    -- 3. КОЛОРПИКЕР (Палитра)
+    -- Аргументы: Name, DefaultColor, Callback
+    Sector:AddColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+        Settings.Color = newColor
     end)
 
-    -- Логика рендера (RunService)
+    -- ЛОГИКА РЕНДЕРА
     game:GetService("RunService").RenderStepped:Connect(function()
         if not Settings.Enabled then return end
         for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
@@ -48,7 +52,12 @@ function VisualsModule:Init(Window)
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                         part.Material = Settings.Material
                         part.Color = Settings.Color
-                        part.Transparency = (Settings.Material == Enum.Material.ForceField and -1) or 0.5
+                        -- Хак прозрачности для ForceField (X-Ray)
+                        if Settings.Material == Enum.Material.ForceField then
+                            part.Transparency = -1
+                        else
+                            part.Transparency = 0.5
+                        end
                     end
                 end
             end
