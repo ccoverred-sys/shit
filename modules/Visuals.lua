@@ -15,53 +15,42 @@ function VisualsModule:Init(Window)
         Rainbow = false
     }
 
-    -- 1. ТУМБЛЕР (Проверенный метод)
-    ChamsSector:AddToggle("Enable Material Chams", false, function(state)
+    -- 1. ТУМБЛЕР (Toggle)
+    ChamsSector:Toggle("Enable Material Chams", false, function(state)
         Settings.Enabled = state
         if not state then VisualsModule:ResetChams() end
     end)
 
-    -- 2. УНИВЕРСАЛЬНЫЙ ДРОПДАУН (Пробуем все варианты вызова)
-    local materials = {"ForceField", "Neon", "Glass", "Ice", "Wood"}
-    
-    local function UpdateMat(selected)
-        Settings.Material = Enum.Material[selected]
-        print("[+] Material set to: " .. selected)
-    end
-
-    -- Попытка 1: (Name, List, Callback) - Самый частый в IsraelLib
-    local success = pcall(function()
-        ChamsSector:AddDropdown("Select Material", materials, function(selected)
-            UpdateMat(selected)
-        end)
+    -- 2. ВЫПАДАЮЩИЙ СПИСОК (Dropdown)
+    -- Аргументы: Name, List, Callback
+    ChamsSector:Dropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice", "Wood"}, function(selected)
+        if Enum.Material[selected] then
+            Settings.Material = Enum.Material[selected]
+            print("[+] Material changed to: " .. selected)
+        end
     end)
 
-    -- Попытка 2: Если первая не сработала (Name, List, Default, Callback)
-    if not success then
-        pcall(function()
-            ChamsSector:AddDropdown("Select Material", materials, "ForceField", function(selected)
-                UpdateMat(selected)
-            end)
-        end)
-    end
-
-    -- 3. КОЛОРПИКЕР (AddColorPicker)
-    pcall(function()
-        ChamsSector:AddColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
-            Settings.Color = newColor
-            Settings.Rainbow = false
-        end)
+    -- 3. ВЫБОР ЦВЕТА (ColorPicker)
+    -- Аргументы: Name, DefaultColor, Callback
+    ChamsSector:ColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+        Settings.Color = newColor
+        Settings.Rainbow = false
     end)
 
-    -- 4. ОКРУЖЕНИЕ
-    WorldSector:AddButton("Full Bright", function()
+    -- 4. РАДУГА (Toggle)
+    ChamsSector:Toggle("Rainbow Mode", false, function(state)
+        Settings.Rainbow = state
+    end)
+
+    -- 5. ОКРУЖЕНИЕ (Button)
+    WorldSector:Button("Full Bright", function()
         local Light = game:GetService("Lighting")
         Light.Brightness = 2
         Light.ClockTime = 14
         Light.GlobalShadows = false
     end)
 
-    -- [ЛОГИКА РЕНДЕРА ОСТАЕТСЯ ПРЕЖНЕЙ]
+    -- [ЛОГИКА ОЧИСТКИ]
     function VisualsModule:ResetChams()
         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
             if player.Character then
@@ -76,17 +65,27 @@ function VisualsModule:Init(Window)
         end
     end
 
+    -- [ЛОГИКА РЕНДЕРА]
     game:GetService("RunService").RenderStepped:Connect(function()
         if not Settings.Enabled then return end
         if Settings.Rainbow then Settings.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1) end
+        
         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
             if player ~= game:GetService("Players").LocalPlayer and player.Character then
                 for _, part in ipairs(player.Character:GetDescendants()) do
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                         if not part:GetAttribute("OrigColor") then part:SetAttribute("OrigColor", part.Color) end
+                        
                         part.Material = Settings.Material
                         part.Color = Settings.Color
-                        part.Transparency = (Settings.Material == Enum.Material.ForceField and -1) or (Settings.Material == Enum.Material.Glass and 0.8) or Settings.Transparency
+                        
+                        if Settings.Material == Enum.Material.ForceField then
+                            part.Transparency = -1 
+                        elseif Settings.Material == Enum.Material.Glass then
+                            part.Transparency = 0.8
+                        else
+                            part.Transparency = Settings.Transparency
+                        end
                     end
                 end
             end
