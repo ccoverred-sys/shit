@@ -4,7 +4,6 @@ function VisualsModule:Init(Window)
     if not Window then return end
 
     local Tab = Window:CreateTab("Visuals")
-    -- Создаем объекты секторов
     local ChamsSector = Tab:CreateSector("Elite Chams", "Left")
     local WorldSector = Tab:CreateSector("Environment", "Right")
     
@@ -16,19 +15,37 @@ function VisualsModule:Init(Window)
         Rainbow = false
     }
 
-    -- 1. ТУМБЛЕР (AddToggle)
+    -- 1. ТУМБЛЕР (Проверенный метод)
     ChamsSector:AddToggle("Enable Material Chams", false, function(state)
         Settings.Enabled = state
         if not state then VisualsModule:ResetChams() end
     end)
 
-    -- 2. ВЫПАДАЮЩИЙ СПИСОК (AddDropdown)
-    ChamsSector:AddDropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice"}, "ForceField", false, function(selected)
+    -- 2. УНИВЕРСАЛЬНЫЙ ДРОПДАУН (Пробуем все варианты вызова)
+    local materials = {"ForceField", "Neon", "Glass", "Ice", "Wood"}
+    
+    local function UpdateMat(selected)
         Settings.Material = Enum.Material[selected]
+        print("[+] Material set to: " .. selected)
+    end
+
+    -- Попытка 1: (Name, List, Callback) - Самый частый в IsraelLib
+    local success = pcall(function()
+        ChamsSector:AddDropdown("Select Material", materials, function(selected)
+            UpdateMat(selected)
+        end)
     end)
 
-    -- 3. ЦВЕТ (AddColorPicker / AddColorpicker)
-    -- Пробуем AddColorPicker, так как это стандарт для таких либ
+    -- Попытка 2: Если первая не сработала (Name, List, Default, Callback)
+    if not success then
+        pcall(function()
+            ChamsSector:AddDropdown("Select Material", materials, "ForceField", function(selected)
+                UpdateMat(selected)
+            end)
+        end)
+    end
+
+    -- 3. КОЛОРПИКЕР (AddColorPicker)
     pcall(function()
         ChamsSector:AddColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
             Settings.Color = newColor
@@ -36,12 +53,7 @@ function VisualsModule:Init(Window)
         end)
     end)
 
-    -- 4. РАДУГА
-    ChamsSector:AddToggle("Rainbow Mode", false, function(state)
-        Settings.Rainbow = state
-    end)
-
-    -- 5. ОКРУЖЕНИЕ (В правый сектор)
+    -- 4. ОКРУЖЕНИЕ
     WorldSector:AddButton("Full Bright", function()
         local Light = game:GetService("Lighting")
         Light.Brightness = 2
@@ -49,7 +61,7 @@ function VisualsModule:Init(Window)
         Light.GlobalShadows = false
     end)
 
-    -- [ЛОГИКА РЕНДЕРА]
+    -- [ЛОГИКА РЕНДЕРА ОСТАЕТСЯ ПРЕЖНЕЙ]
     function VisualsModule:ResetChams()
         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
             if player.Character then
