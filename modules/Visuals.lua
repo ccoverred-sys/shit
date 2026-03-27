@@ -3,97 +3,75 @@ local VisualsModule = {}
 function VisualsModule:Init(Window)
     if not Window then return end
 
-    -- Создаем вкладку
+    -- 1. Создаем вкладку
     local Tab = Window:CreateTab("Visuals")
     
-    -- Создаем секторы (Side: Left или Right)
-    local ChamsSector = Tab:CreateSector("Elite Chams", "Left")
-    local WorldSector = Tab:CreateSector("Environment", "Right")
+    -- 2. Создаем секторы (визуальные рамки)
+    Tab:CreateSector("Elite Chams", "Left")
+    Tab:CreateSector("Environment", "Right")
     
     local Settings = {
         Enabled = false,
         Material = Enum.Material.ForceField,
         Color = Color3.fromRGB(255, 0, 0),
-        Transparency = 0.5,
         Rainbow = false
     }
 
-    -- 1. ТУМБЛЕР (AddToggle)
-    -- Аргументы: Название, Дефолт (bool), Коллбэк
-    ChamsSector:AddToggle("Enable Material Chams", false, function(state)
+    -- ВНИМАНИЕ: В этой либе элементы создаются через Tab!
+    -- Формат: Tab:AddToggle("ИмяСектора", "Название", Дефолт, Коллбэк)
+
+    -- ТУМБЛЕР
+    Tab:AddToggle("Elite Chams", "Enable Chams", false, function(state)
         Settings.Enabled = state
         if not state then VisualsModule:ResetChams() end
     end)
 
-    -- 2. ВЫПАДАЮЩИЙ СПИСОК (AddDropdown)
-    -- Аргументы: Название, Таблица, Дефолтное_значение, Коллбэк
-    local materials = {"ForceField", "Neon", "Glass", "Ice"}
-    ChamsSector:AddDropdown("Select Material", materials, "ForceField", function(selected)
-        if Enum.Material[selected] then
-            Settings.Material = Enum.Material[selected]
-        end
+    -- ДРОПДАУН (Материалы)
+    local mats = {"ForceField", "Neon", "Glass", "Ice"}
+    Tab:AddDropdown("Elite Chams", "Select Material", mats, "ForceField", function(selected)
+        Settings.Material = Enum.Material[selected]
     end)
 
-    -- 3. ВЫБОР ЦВЕТА (AddColorpicker - в IsraelLib обычно маленькая 'p')
-    -- Аргументы: Название, Дефолт (Color3), Коллбэк
-    ChamsSector:AddColorpicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+    -- КОЛОРПИКЕР
+    Tab:AddColorpicker("Elite Chams", "Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
         Settings.Color = newColor
         Settings.Rainbow = false
     end)
 
-    -- 4. РАДУГА
-    ChamsSector:AddToggle("Rainbow Mode", false, function(state)
-        Settings.Rainbow = state
-    end)
-
-    -- 5. ОКРУЖЕНИЕ (AddButton)
-    -- Аргументы: Название, Коллбэк
-    WorldSector:AddButton("Full Bright", function()
-        local Light = game:GetService("Lighting")
-        Light.Brightness = 2
-        Light.ClockTime = 14
-        Light.GlobalShadows = false
+    -- КНОПКА (В другой сектор)
+    Tab:AddButton("Environment", "Full Bright", function()
+        local L = game:GetService("Lighting")
+        L.Brightness = 2
+        L.ClockTime = 14
+        L.GlobalShadows = false
     end)
 
     -- [ЛОГИКА СБРОСА]
     function VisualsModule:ResetChams()
-        for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-            if player.Character then
-                for _, part in ipairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Material = Enum.Material.Plastic
-                        part.Transparency = 0
-                        part.Color = part:GetAttribute("OrigColor") or part.Color
+        for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+            if p.Character then
+                for _, v in ipairs(p.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.Plastic
+                        v.Transparency = 0
+                        v.Color = v:GetAttribute("OrigColor") or v.Color
                     end
                 end
             end
         end
     end
 
-    -- [ЛОГИКА РЕНДЕРА]
+    -- [ЦИКЛ РЕНДЕРА]
     game:GetService("RunService").RenderStepped:Connect(function()
         if not Settings.Enabled then return end
-        if Settings.Rainbow then Settings.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1) end
-        
-        for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-            if player ~= game:GetService("Players").LocalPlayer and player.Character then
-                for _, part in ipairs(player.Character:GetDescendants()) do
+        for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+            if p ~= game:GetService("Players").LocalPlayer and p.Character then
+                for _, part in ipairs(p.Character:GetDescendants()) do
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                        if not part:GetAttribute("OrigColor") then 
-                            part:SetAttribute("OrigColor", part.Color) 
-                        end
-                        
+                        if not part:GetAttribute("OrigColor") then part:SetAttribute("OrigColor", part.Color) end
                         part.Material = Settings.Material
                         part.Color = Settings.Color
-                        
-                        -- Фикс прозрачности для X-Ray
-                        if Settings.Material == Enum.Material.ForceField then
-                            part.Transparency = -1 
-                        elseif Settings.Material == Enum.Material.Glass then
-                            part.Transparency = 0.8
-                        else
-                            part.Transparency = Settings.Transparency
-                        end
+                        part.Transparency = (Settings.Material == Enum.Material.ForceField and -1) or 0.5
                     end
                 end
             end
