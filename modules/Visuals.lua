@@ -16,37 +16,40 @@ function VisualsModule:Init(Window)
     }
 
     -- 1. ГЛАВНЫЙ ВКЛЮЧАТЕЛЬ
-    ChamsSector:AddToggle("Enable Material Chams", false, function(state)
+    ChamsSector:CreateToggle("Enable Material Chams", false, function(state)
         Settings.Enabled = state
         if not state then
             VisualsModule:ResetChams()
         end
     end)
 
-    -- 2. ВЫБОРОЧНЫЙ СПИСОК (DROPDOWN) - Тот самый "ахуенный" выбор
-    -- Аргументы: Name, Options (table), Default, Callback
-    ChamsSector:AddDropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice", "Wood", "Diamond"}, "ForceField", function(selected)
+    -- 2. DROPDOWN (Выбор материала)
+    -- В этой либе: CreateDropdown(Name, Options, Default, Callback)
+    ChamsSector:CreateDropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice", "Wood", "Diamond"}, "ForceField", function(selected)
         Settings.Material = Enum.Material[selected]
-        print("[!] Material changed to: " .. selected)
     end)
 
-    -- 3. ЦВЕТА И ЭФФЕКТЫ
-    ChamsSector:AddToggle("Rainbow Mode", false, function(state)
+    -- 3. COLORPICKER (Выбор любого цвета)
+    -- В этой либе: CreateColorpicker(Name, Default, Callback)
+    ChamsSector:CreateColorpicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+        Settings.Color = newColor
+        Settings.Rainbow = false -- Выключаем радугу, если выбрали цвет вручную
+    end)
+
+    -- 4. ЭФФЕКТЫ
+    ChamsSector:CreateToggle("Rainbow Mode", false, function(state)
         Settings.Rainbow = state
     end)
 
-    ChamsSector:AddButton("Color: Red", function() Settings.Color = Color3.fromRGB(255, 0, 0); Settings.Rainbow = false end)
-    ChamsSector:AddButton("Color: Cyan", function() Settings.Color = Color3.fromRGB(0, 255, 255); Settings.Rainbow = false end)
-
-    -- 4. ОКРУЖЕНИЕ
-    WorldSector:AddButton("Full Bright", function()
+    -- 5. ОКРУЖЕНИЕ
+    WorldSector:CreateButton("Full Bright", function()
         local Light = game:GetService("Lighting")
         Light.Brightness = 2
         Light.ClockTime = 14
         Light.GlobalShadows = false
     end)
 
-    -- ФУНКЦИЯ СБРОСА
+    -- ФУНКЦИЯ СБРОСА (Internal)
     function VisualsModule:ResetChams()
         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
             if player.Character then
@@ -61,7 +64,7 @@ function VisualsModule:Init(Window)
         end
     end
 
-    -- ЦИКЛ РЕНДЕРИНГА
+    -- ЦИКЛ РЕНДЕРИНГА (Fast Update)
     game:GetService("RunService").RenderStepped:Connect(function()
         if not Settings.Enabled then return end
         
@@ -80,9 +83,10 @@ function VisualsModule:Init(Window)
                         part.Material = Settings.Material
                         part.Color = Settings.Color
                         
-                        -- Специальная прозрачность для X-Ray (ForceField)
                         if Settings.Material == Enum.Material.ForceField then
                             part.Transparency = -1 
+                        elseif Settings.Material == Enum.Material.Glass then
+                            part.Transparency = 0.8
                         else
                             part.Transparency = Settings.Transparency
                         end
