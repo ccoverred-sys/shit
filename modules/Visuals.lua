@@ -4,6 +4,7 @@ function VisualsModule:Init(Window)
     if not Window then return end
 
     local Tab = Window:CreateTab("Visuals")
+    -- В твоей либе аргументы: (Name, Side)
     local ChamsSector = Tab:CreateSector("Elite Chams", "Left")
     local WorldSector = Tab:CreateSector("Environment", "Right")
     
@@ -15,34 +16,35 @@ function VisualsModule:Init(Window)
         Rainbow = false
     }
 
-    -- 1. ТУМБЛЕР (Toggle)
+    -- 1. ТУМБЛЕР (Метод: Toggle)
+    -- Аргументы: Name, Default, Callback
     ChamsSector:Toggle("Enable Material Chams", false, function(state)
         Settings.Enabled = state
         if not state then VisualsModule:ResetChams() end
     end)
 
-    -- 2. ВЫПАДАЮЩИЙ СПИСОК (Dropdown)
-    -- Аргументы: Name, List, Callback
-    ChamsSector:Dropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice", "Wood"}, function(selected)
+    -- 2. ВЫПАДАЮЩИЙ СПИСОК (Метод: Dropdown)
+    -- Аргументы: Name, Options, Default, Callback
+    ChamsSector:Dropdown("Select Material", {"ForceField", "Neon", "Glass", "Ice"}, "ForceField", function(selected)
         if Enum.Material[selected] then
             Settings.Material = Enum.Material[selected]
-            print("[+] Material changed to: " .. selected)
         end
     end)
 
-    -- 3. ВЫБОР ЦВЕТА (ColorPicker)
-    -- Аргументы: Name, DefaultColor, Callback
-    ChamsSector:ColorPicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
+    -- 3. ЦВЕТ (Метод: Colorpicker)
+    -- Аргументы: Name, Default, Callback
+    ChamsSector:Colorpicker("Chams Color", Color3.fromRGB(255, 0, 0), function(newColor)
         Settings.Color = newColor
         Settings.Rainbow = false
     end)
 
-    -- 4. РАДУГА (Toggle)
+    -- 4. РАДУГА
     ChamsSector:Toggle("Rainbow Mode", false, function(state)
         Settings.Rainbow = state
     end)
 
-    -- 5. ОКРУЖЕНИЕ (Button)
+    -- 5. ОКРУЖЕНИЕ (Метод: Button)
+    -- Аргументы: Name, Callback
     WorldSector:Button("Full Bright", function()
         local Light = game:GetService("Lighting")
         Light.Brightness = 2
