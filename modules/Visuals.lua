@@ -1,68 +1,54 @@
---[[
-    ELITE CHAMS MODULE (MODULAR)
-    Type: High-Visibility Thermal X-Ray
-    Developer: Expert Level AI
-]]
+local VisualsModule = {}
 
-local Chams = {
-    Enabled = false,
-    FillColor = Color3.fromRGB(255, 0, 0),
-    OutlineColor = Color3.fromRGB(255, 255, 255),
-    FillTransparency = 0.5,
-    OutlineTransparency = 0
-}
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- Функция применения чамсов к персонажу
-function Chams:Apply(char)
-    if not char then return end
+function VisualsModule:Init(Window)
+    local Tab = Window:CreateTab("Visuals")
+    local ESPSector = Tab:CreateSector("ESP & Chams", "Left")
+    local WorldSector = Tab:CreateSector("Environment", "Right")
     
-    local highlight = char:FindFirstChild("EliteChams")
-    if not highlight then
-        highlight = Instance.new("Highlight")
-        highlight.Name = "EliteChams"
-        highlight.Parent = char
-    end
-    
-    highlight.FillColor = self.FillColor
-    highlight.OutlineColor = self.OutlineColor
-    highlight.FillTransparency = self.FillTransparency
-    highlight.OutlineTransparency = self.OutlineTransparency
-    highlight.Adornee = char
-    highlight.Enabled = self.Enabled
-end
+    local Settings = {
+        Chams = false,
+        Boxes = false,
+        FullBright = false
+    }
 
--- Основной цикл обновления
-task.spawn(function()
-    while task.wait(1) do
-        if Chams.Enabled then
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    Chams:Apply(player.Character)
+    -- 1. CHAMS (Highlight System)
+    ESPSector:AddToggle("Elite Chams", false, function(state)
+        Settings.Chams = state
+    end)
+
+    -- 2. ESP BOXES (Highlight-based)
+    ESPSector:AddToggle("Player ESP", false, function(state)
+        Settings.Boxes = state
+    end)
+
+    -- 3. FULL BRIGHT
+    WorldSector:AddButton("Full Bright", function()
+        game:GetService("Lighting").Brightness = 2
+        game:GetService("Lighting").ClockTime = 14
+        game:GetService("Lighting").GlobalShadows = false
+    end)
+
+    -- СИСТЕМНЫЙ ЦИКЛ ОБНОВЛЕНИЯ (Fast Loop)
+    task.spawn(function()
+        while task.wait(1) do
+            for _, player in ipairs(game.Players:GetPlayers()) do
+                if player ~= game.Players.LocalPlayer and player.Character then
+                    local char = player.Character
+                    local hl = char:FindFirstChild("EliteVisuals") or Instance.new("Highlight", char)
+                    hl.Name = "EliteVisuals"
+                    
+                    -- Настройка видимости
+                    hl.Enabled = (Settings.Chams or Settings.Boxes)
+                    hl.FillTransparency = Settings.Chams and 0.5 or 1
+                    hl.OutlineTransparency = Settings.Boxes and 0 or 1
+                    hl.FillColor = Color3.fromRGB(255, 0, 0)
+                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                 end
             end
-        else
-            -- Очистка при выключении
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Character then
-                    local hl = player.Character:FindFirstChild("EliteChams")
-                    if hl then hl:Destroy() end
-                end
-            end
-        end
-    end
-end)
-
--- Слушатель новых игроков
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(char)
-        if Chams.Enabled then
-            task.wait(1) -- Ждем загрузки персонажа
-            Chams:Apply(char)
         end
     end)
-end)
 
-return Chams
+    return VisualsModule
+end
+
+return VisualsModule
